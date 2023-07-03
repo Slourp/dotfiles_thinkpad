@@ -1,5 +1,3 @@
-This repository is used by [PEPITE](https://www.pepitegoodies.com/).
-
 ## Toolset
 
 - [oh-my-zsh](http://ohmyz.sh/)
