@@ -1,0 +1,323 @@
+# Global
+alias src="source ~/.zshrc"
+alias c="reset"
+alias editsrc="nano  ~/.aliases"
+
+# Get External IP / Internet Speed
+alias myip="curl https://ipinfo.io/json" # or /ip for plain-text ip
+alias speedtest="curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python -"
+
+# Quickly serve the current directory as HTTP
+alias serve='ruby -run -e httpd . -p 8000' # Or python -m SimpleHTTPServer :)
+
+# NOTE: On Q3 2021, Le Wagon decided to change the Web Dev curriculum default text editor
+alias stt="echo 'Launching VS Code instead of Sublime Text... (cf ~/.aliases)' && code ."
+
+alias src="source ~/.zshrc"
+alias c="reset"
+alias editsrc="nano  ~/.aliases"
+
+alias update="sudo pacman -Syu"
+alias composer="docker run --rm --interactive --tty --volume $PWD:/app --user $(id -u):$(id -g)  composer $@"
+
+alias framework-install="$HOME/code/dotfiles/Scripts/createPhpApp.sh"
+#GIT
+
+## Fix|Update commit message
+alias cu='git commit --amend -m $@'
+
+## Delete last commit
+alias cr='git reset HEAD~'
+
+## Update branch name
+
+alias gbu='git branch -m $@'
+
+#GIT
+
+## Add and commit
+function cm() {
+   if [[ -z "$1" ]]; then
+      echo "Usage: cm COMMIT_MESSAGE"
+      return 1
+   fi
+
+   local first_word="$(echo "$1" | awk '{print toupper($1)}')"
+   local commit_message="$(echo "$1" | sed "s/^$first_word/$first_word/")"
+   commit_message="[$first_word] ${commit_message#* }"
+   git add .
+   git commit -m "$commit_message"
+}
+
+#PEPITE
+alias pepite='/bin/bash $HOME/restorePepite.sh'
+
+#TRAEFIK
+alias traefik='/bin/bash $HOME/code/dotfiles/Scripts/traefik.sh'
+
+#PHP
+function run_docker_php {
+    # This function runs a Docker command for PHP:8.2-fpm with certain parameters.
+
+    function print_help {
+        echo "Usage: run_docker_php [--help | -help | -h] [--port external:internal] command [args...]"
+        echo ""
+        echo "This function runs a Docker command for PHP:8.2-fpm with certain parameters."
+        echo "After the options, you can pass a command to be executed within the Docker container."
+        echo ""
+        echo "Options:"
+        echo "--help, -help, -h: Show this help message."
+        echo "--port: The external and internal port numbers to be used by Docker and the PHP server. If not provided, the port option will not be set."
+    }
+
+    function validate_port {
+        if [[ -n "$1" && ! "$1" =~ ^[0-9]+:[0-9]+$ ]]; then
+            echo "Invalid port: $1"
+            echo "For usage information, use: run_docker_php --help"
+            return 1
+        fi
+        return 0
+    }
+
+    local port_mapping=""
+    local internal_port=""
+    local command=""
+    local command_args=()
+    local skip_command=false
+
+    while (( "$#" )); do
+        case "$1" in
+            --help|-help|-h)
+                print_help
+                return 0
+                ;;
+            --port)
+                shift
+                validate_port "$1" || return 1
+                if [[ -n "$1" ]]; then
+                    port_mapping=" -p $1"
+                    internal_port="${1##*:}"
+                fi
+                shift
+                ;;
+            *)
+                if [[ "$skip_command" = false ]]; then
+                    command="$1"
+                    skip_command=true
+                else
+                    command_args+=("$1")
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    if [[ -z "$command" ]]; then
+        if [[ "${#command_args[@]}" -eq 0 ]]; then
+            echo "You must provide a command to be executed within the Docker container."
+            echo "For usage information, use: run_docker_php --help"
+            return 1
+        else
+            command="${command_args[0]}"
+            command_args=("${command_args[@]:1}")
+        fi
+    fi
+
+    local command_args_string="${command_args[*]}"
+
+    if [[ -n "$port_mapping" ]]; then
+        eval "docker run --rm --interactive --tty --volume $PWD:/app --user $(id -u):$(id -g) -w /app$port_mapping php:8.2-fpm php -S 0.0.0.0:$internal_port -t public"
+    else
+        eval "docker run --rm --interactive --tty --volume $PWD:/app --user $(id -u):$(id -g) -w /app docker.io/bitnami/laravel:10 $command $command_args_string"
+    fi
+}
+
+#ARTISAN
+function run_docker_artisan {
+    # This function runs a Docker command for the docker.io/bitnami/laravel:10 image with certain parameters.
+
+    function print_help {
+        echo "Usage: run_docker_artisan [--help | -help | -h] [--port external:internal] command [args...]"
+        echo ""
+        echo "This function runs a Docker command for the docker.io/bitnami/laravel:10 image with certain parameters."
+        echo "After the options, you can pass a command to be executed within the Docker container."
+        echo ""
+        echo "Options:"
+        echo "--help, -help, -h: Show this help message."
+        echo "--port: The external and internal port numbers to be used by Docker and the PHP server. If not provided, the port option will not be set."
+    }
+
+    function validate_port {
+        if [[ -n "$1" && ! "$1" =~ ^[0-9]+:[0-9]+$ ]]; then
+            echo "Invalid port: $1"
+            echo "For usage information, use: run_docker_artisan --help"
+            return 1
+        fi
+        return 0
+    }
+
+    local port_mapping=""
+    local internal_port=""
+    local command=""
+    local command_args=()
+    local skip_command=false
+    local host_option=""
+
+    while (( "$#" )); do
+        case "$1" in
+            --help|-help|-h)
+                print_help
+                return 0
+                ;;
+            --port)
+                shift
+                validate_port "$1" || return 1
+                if [[ -n "$1" ]]; then
+                    port_mapping=" -p $1"
+                    internal_port="${1##*:}"
+                fi
+                shift
+                ;;
+            --host)
+                shift
+                if [[ -n "$1" ]]; then
+                    host_option=" --host=$1"
+                fi
+                shift
+                ;;
+            *)
+                if [[ "$skip_command" = false ]]; then
+                    command="$1"
+                    skip_command=true
+                else
+                    command_args+=("$1")
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    if [[ -z "$command" ]]; then
+        if [[ "${#command_args[@]}" -eq 0 ]]; then
+            echo "You must provide a command to be executed within the Docker container."
+            echo "For usage information, use: run_docker_artisan --help"
+            return 1
+        else
+            command="${command_args[0]}"
+            command_args=("${command_args[@]:1}")
+        fi
+    fi
+
+    local command_args_string="${command_args[*]}"
+
+    if [[ -n "$port_mapping" ]]; then
+        eval "docker run --rm --interactive --tty --volume $PWD:/app --user $(id -u):$(id -g) -w /app$port_mapping docker.io/bitnami/laravel:10 php artisan $command $command_args_string$host_option"
+    else
+        eval "docker run --rm --interactive --tty --volume $PWD:/app --user $(id -u):$(id -g) -w /app docker.io/bitnami/laravel:10 php artisan $command $command_args_string$host_option"
+    fi
+}
+
+
+#SYMFONY
+function run_docker_symfony {
+    # This function runs a Docker command for the docker.io/bitnami/laravel:10 image with certain parameters.
+
+    function print_help {
+        echo "Usage: run_docker_php [--help | -help | -h] [--port external:internal] command [args...]"
+        echo ""
+        echo "This function runs a Docker command for the docker.io/bitnami/laravel:10 image with certain parameters."
+        echo "After the options, you can pass a command to be executed within the Docker container."
+        echo ""
+        echo "Options:"
+        echo "--help, -help, -h: Show this help message."
+        echo "--port: The external and internal port numbers to be used by Docker and the PHP server. If not provided, the port option will not be set."
+    }
+
+    function validate_port {
+        if [[ -n "$1" && ! "$1" =~ ^[0-9]+:[0-9]+$ ]]; then
+            echo "Invalid port: $1"
+            echo "For usage information, use: run_docker_php --help"
+            return 1
+        fi
+        return 0
+    }
+
+    local port_mapping=""
+    local internal_port=""
+    local command=""
+    local command_args=()
+    local skip_command=false
+
+    while (( "$#" )); do
+        case "$1" in
+            --help|-help|-h)
+                print_help
+                return 0
+                ;;
+            --port)
+                shift
+                validate_port "$1" || return 1
+                if [[ -n "$1" ]]; then
+                    port_mapping=" -p $1"
+                    internal_port="${1##*:}"
+                fi
+                shift
+                ;;
+            *)
+                if [[ "$skip_command" = false ]]; then
+                    command="$1"
+                    skip_command=true
+                else
+                    command_args+=("$1")
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    if [[ -z "$command" ]]; then
+        if [[ "${#command_args[@]}" -eq 0 ]]; then
+            echo "You must provide a command to be executed within the Docker container."
+            echo "For usage information, use: run_docker_php --help"
+            return 1
+        else
+            command="${command_args[0]}"
+            command_args=("${command_args[@]:1}")
+        fi
+    fi
+
+    local command_args_string="${command_args[*]}"
+
+    if [[ -n "$port_mapping" ]]; then
+        eval "docker run --rm --interactive --tty --volume $PWD:/app --user $(id -u):$(id -g) -w /app$port_mapping binarious/symfony-cli symfony $command $command_args_string"
+    else
+        eval "docker run --rm --interactive --tty --volume $PWD:/app --user $(id -u):$(id -g) -w /app binarious/symfony-cli symfony $command $command_args_string"
+    fi
+}
+
+
+
+
+#NPX
+#alias npx='docker run --rm --interactive --tty \
+#--volume $PWD:/app \
+#--volume ~/.npm-global:/home/node/.npm-global \
+#--workdir /app \
+#--user $(id -u):$(id -g) \
+#--env NPM_CONFIG_PREFIX=/home/node/.npm-global \
+#node:alpine npx'
+
+#NPM
+#alias npm='docker run --rm --interactive --tty \
+#	--volume $PWD:/app \
+#	--volume ~/.npm-global:/npm-packages \
+#	--workdir /app \
+#	--env NPM_CONFIG_PREFIX=/npm-packages \
+#node:alpine npm'
+
+#NODE
+#alias node='docker run --rm --interactive --tty \
+#	--volume $PWD:/app \
+#	--workdir /app \
+#	--user $(id -u):$(id -g) \
+#	node:alpine node'
